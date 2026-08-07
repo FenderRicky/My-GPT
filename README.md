@@ -1,84 +1,175 @@
 # Ask Vineeth — Personal GPT
 
-A small FastAPI app that answers questions about Vineeth Thadigotla ("Ricky Fender") —
-full-stack dev, UI/UX designer, and AI engineer. Deploys as a serverless function on
-Vercel. No database, no vector search — the knowledge base is small enough to inline
-directly into the prompt, so it's a single API call per question. Runs on Groq's free
-tier (no credit card, ~1,000 requests/day, fast inference).
+A lightweight AI-powered Personal GPT built with **FastAPI** and deployed as a **Vercel Serverless Function**.
 
-## Live demo
+The assistant answers questions about **Vineeth Thadigotla ("Ricky Fender")**, including his experience, projects, skills, tech stack, and professional background. Instead of using a database or vector search, the knowledge base is embedded directly into the system prompt, allowing each request to be handled with a single API call.
 
-Visit the deployed URL → type a question → get an answer.
-Try: "what's his tech stack?", "tell me about ARIA", "what roles is he open to?"
+Powered by **Groq's Llama 3.3 70B** for fast, low-latency responses.
 
-## Project structure
+---
 
-```
+## ✨ Features
+
+- FastAPI backend
+- Serverless deployment on Vercel
+- Groq API integration
+- No database required
+- No embeddings or vector search
+- Simple single-request architecture
+- Lightweight and easy to customize
+- Basic in-memory rate limiting
+
+---
+
+## Project Structure
+
+```text
 .
 ├── api/
-│   └── index.py        # FastAPI app — Vercel auto-detects this as a serverless function
-├── requirements.txt    # Python dependencies
+│   └── index.py
+├── requirements.txt
 └── README.md
 ```
 
-Vercel's Python runtime automatically treats any file under `api/` as a serverless
-function, as long as it exports a top-level `app` (FastAPI instance). No `vercel.json`
-is needed for this structure.
+---
 
-## How it works
+## How It Works
 
-- `GET /` — serves a small HTML chat UI
-- `POST /api/ask` — takes `{ "question": "..." }`, returns `{ "answer": "..." }`
-- The system prompt (in `api/index.py`) contains Vineeth's bio, skills, projects, and
-  approved contact links. Every request sends this + the question to Groq in one call.
-- A soft in-memory rate limiter caps requests per warm instance (20/hour) as a basic
-  safety net against runaway usage, on top of Groq's own account-level free-tier limit.
+### GET /
+
+Serves the web-based chat interface.
+
+### POST /api/ask
+
+Accepts:
+
+```json
+{
+  "question": "Your question"
+}
+```
+
+Returns:
+
+```json
+{
+  "answer": "Generated response"
+}
+```
+
+Each request includes:
+
+- System Prompt
+- User Question
+
+The prompt contains approved public information about Vineeth including:
+
+- Skills
+- Projects
+- Experience
+- Contact links
+
+Everything is sent to Groq in a single API request.
+
+---
 
 ## Setup
 
-### 1. Get a Groq API key
-Go to [console.groq.com/keys](https://console.groq.com/keys), sign up with just an
-email (no credit card), and create a key.
+### 1. Create a Groq API Key
 
-Groq's free tier is enforced server-side per account — roughly 30 requests/min and
-~1,000 requests/day for `llama-3.3-70b-versatile` (check console.groq.com for your
-account's current limits, these can change). Once you hit it, Groq returns a 429 —
-that's your real backstop, independent of how many serverless instances Vercel spins up.
+Create an API key from:
+
+https://console.groq.com/keys
+
+No credit card is required.
+
+---
 
 ### 2. Deploy to Vercel
-1. Push this repo to GitHub.
-2. Import the repo in [vercel.com](https://vercel.com).
-3. In **Project Settings → Environment Variables**, add:
-   - Key: `GROQ_API_KEY`
-   - Value: your Groq API key
-   - Environment: Production (and Preview, if you want)
-4. Deploy. Vercel auto-detects `api/index.py` as a Python serverless function.
 
-### 3. Redeploy after any env var change
-Environment variable changes don't apply to existing deployments — after adding/editing
-one, go to **Deployments → (latest) → ⋯ → Redeploy**.
+1. Push this repository to GitHub.
+2. Import it into Vercel.
+3. Add the following Environment Variable:
 
-## Updating what the bot knows
+```
+GROQ_API_KEY=your_api_key
+```
 
-Edit the `SYSTEM_PROMPT` string in `api/index.py`. It's plain text — add, remove, or
-correct facts directly. No re-training or embeddings step needed; changes take effect
-on the next deploy.
+4. Deploy.
 
-**Privacy note:** the prompt is explicitly scoped to only share the approved public
-links (portfolio, GitHub, LinkedIn, Instagram, freelance email) and is instructed to
-never share a phone number or personal email. Keep that scoping in mind if you add more
-personal info later.
+Vercel automatically detects `api/index.py` as a Python Serverless Function.
 
-## Local testing (optional)
+---
+
+### 3. Redeploy
+
+Whenever an environment variable changes:
+
+Deployments → Latest Deployment → Redeploy
+
+---
+
+## Updating Knowledge
+
+Edit the `SYSTEM_PROMPT` inside:
+
+```text
+api/index.py
+```
+
+Update the information directly.
+
+No retraining, indexing, or embedding generation is required.
+
+---
+
+## Privacy
+
+The assistant is intentionally restricted to sharing only approved public information such as:
+
+- Portfolio
+- GitHub
+- LinkedIn
+- Instagram
+- Freelance Email
+
+Personal contact details such as phone numbers or private email addresses should not be added.
+
+---
+
+## Local Development
+
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 pip install uvicorn
+```
+
+Run:
+
+```bash
 GROQ_API_KEY=your-key-here uvicorn api.index:app --reload
 ```
 
-Then visit `http://localhost:8000`.
+Open:
 
-## Tech
+```
+http://localhost:8000
+```
 
-FastAPI · Groq API (`groq` SDK, Llama 3.3 70B) · deployed on Vercel serverless functions
+---
+
+## Tech Stack
+
+- FastAPI
+- Groq SDK
+- Llama 3.3 70B
+- Python
+- Vercel Serverless Functions
+
+---
+
+## License
+
+This project is intended for personal portfolio and educational purposes.
