@@ -106,7 +106,7 @@ If asked for contact details or links, share from the APPROVED CONTACT / LINKS l
 
 
 # ---------------------------------------------------------------------------
-# API
+# API Models
 # ---------------------------------------------------------------------------
 
 class QueryRequest(BaseModel):
@@ -116,6 +116,10 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
 
+
+# ---------------------------------------------------------------------------
+# HTML UI
+# ---------------------------------------------------------------------------
 
 DEMO_HTML = """
 <!DOCTYPE html>
@@ -157,7 +161,6 @@ DEMO_HTML = """
     transition:background 0.25s ease, color 0.25s ease;
   }
 
-  /* subtle responsive background — two soft blurs + faint grain, low opacity throughout */
   .bg{
     position:fixed;
     inset:0;
@@ -244,7 +247,6 @@ DEMO_HTML = """
     margin:0;
   }
 
-  /* input — hairline, no boxy card */
   .composer{
     margin-top:38px;
     border-bottom:1.5px solid var(--ink);
@@ -303,7 +305,6 @@ DEMO_HTML = """
   }
   .sug:hover{ color:var(--navy); border-color:var(--navy); }
 
-  /* Q&A transcript */
   .transcript{ margin-top:52px; }
   .entry{
     padding:28px 0;
@@ -419,7 +420,6 @@ DEMO_HTML = """
   </div>
 
 <script>
-  // theme
   const root = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
 
@@ -478,8 +478,10 @@ DEMO_HTML = """
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q })
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Request failed');
+      
       answerEl.textContent = data.answer;
       answerEl.classList.remove('loading');
     } catch (err) {
@@ -508,6 +510,10 @@ DEMO_HTML = """
 """
 
 
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
 @app.get("/", response_class=HTMLResponse)
 def demo_page():
     return DEMO_HTML
@@ -526,17 +532,53 @@ def ask(req: QueryRequest):
 
     check_rate_limit()
 
-    client = get_client()
-    completion = client.chat.completions.create(
-        model=GENERATION_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": req.question},
-        ],
-        temperature=0.6,
-    )
+    try:
+        client = get_client()
+        completion = client.chat.completions.create(
+            model=GENERATION_MODEL,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": req.question},
+            ],
+            temperature=0.6,
+        )
 
-    return QueryResponse(answer=completion.choices[0].message.content)
+        # Safely extract the answer
+        if not completion.choices or not completion.choices[0].message:
+            raise HTTPException(
+                status_code=500,
+                detail="Groq returned an empty response. Try again."
+            )
+
+        answer = completion.choices[0].message.content
+        if not answer:
+            raise HTTPException(
+                status_code=500,
+                detail="Groq returned empty content. Try again."
+            )
+
+        return QueryResponse(answer=answer)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Catch Groq errors, network errors, etc.
+        error_msg = str(e)
+        if "429" in error_msg or "rate_limit" in error_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="Groq rate limit exceeded. Try again in a few minutes."
+            )
+        elif "401" in error_msg or "authentication" in error_msg.lower():
+            raise HTTPException(
+                status_code=500,
+                detail="Groq API authentication failed. Check your API key."
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"API error: {error_msg[:100]}"
+            )
 
 
 # ---------------------------------------------------------------------------
