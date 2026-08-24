@@ -29,8 +29,7 @@ from groq import Groq
 # ---------------------------------------------------------------------------
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GENERATION_MODEL = "mixtral-8x7b-32768"
-# Soft rate limit: max requests per rolling window, per warm instance.
+GENERATION_MODEL = "llama-3.1-70b-versatile"# Soft rate limit: max requests per rolling window, per warm instance.
 MAX_REQUESTS = 20
 WINDOW_SECONDS = 3600  # 1 hour
 
