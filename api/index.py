@@ -29,8 +29,8 @@ from groq import Groq
 # ---------------------------------------------------------------------------
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GENERATION_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-FALLBACK_MODEL = os.environ.get("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")
+GENERATION_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+FALLBACK_MODEL = os.environ.get("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")
 
 # Soft rate limit: max requests per rolling window, per warm instance.
 MAX_REQUESTS = 20
