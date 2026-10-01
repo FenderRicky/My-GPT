@@ -29,7 +29,10 @@ from groq import Groq
 # ---------------------------------------------------------------------------
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-GENERATION_MODEL = "llama-3.1-70b-versatile"# Soft rate limit: max requests per rolling window, per warm instance.
+GENERATION_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+FALLBACK_MODEL = os.environ.get("GROQ_FALLBACK_MODEL", "llama-3.1-8b-instant")
+
+# Soft rate limit: max requests per rolling window, per warm instance.
 MAX_REQUESTS = 20
 WINDOW_SECONDS = 3600  # 1 hour
 
@@ -701,14 +704,23 @@ def ask(req: QueryRequest):
 
     try:
         client = get_client()
-        completion = client.chat.completions.create(
-            model=GENERATION_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": req.question},
-            ],
-            temperature=0.6,
-        )
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": req.question},
+        ]
+        completion = None
+        last_err = None
+        for model in dict.fromkeys([GENERATION_MODEL, FALLBACK_MODEL]):  # primary, then fallback
+            try:
+                completion = client.chat.completions.create(model=model, messages=messages, temperature=0.6)
+                break
+            except Exception as e:
+                msg = str(e).lower()
+                if "429" in msg or "rate_limit" in msg or "401" in msg or "authentication" in msg:
+                    raise  # fallback model won't help; handled below
+                last_err = e
+        if completion is None:
+            raise last_err
 
         # Safely extract the answer
         if not completion.choices or not completion.choices[0].message:
